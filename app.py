@@ -20,6 +20,7 @@ from core.models import LGM
 from mvdream.pipeline_mvdream import MVDreamPipeline
 import requests
 from io import BytesIO
+import base64
 
 IMAGENET_DEFAULT_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_DEFAULT_STD = (0.229, 0.224, 0.225)
@@ -80,7 +81,8 @@ def validate(validation_prompt):
             buffer = BytesIO(file.read())
             buffer.seek(0)
             data = buffer.read()
-            response = requests.post("http://localhost:8094/validate_ply/", json={"prompt": validation_prompt, "data": data, "data_ver":1})
+            encoded_data = base64.b64encode(data).decode('utf-8')
+            response = requests.post("http://localhost:8094/validate_ply/", json={"prompt": validation_prompt, "data": encoded_data, "data_ver":1})
             score = response.json().get("score", 0)
             return score
     except Exception as e:
