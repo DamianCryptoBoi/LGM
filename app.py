@@ -76,7 +76,7 @@ bg_remover = rembg.new_session()
 
 def validate(validation_prompt):
     try:
-        with open(GRADIO_PLY_PATH, "rb") as file:
+        with open(os.path.join(opt.workspace, GRADIO_PLY_PATH), "rb") as file:
             buffer = BytesIO(file.read())
             buffer.seek(0)
             data = buffer.read()
