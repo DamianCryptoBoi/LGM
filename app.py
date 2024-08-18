@@ -18,6 +18,8 @@ from kiui.cam import orbit_camera
 from core.options import AllConfigs, Options
 from core.models import LGM
 from mvdream.pipeline_mvdream import MVDreamPipeline
+import requests
+from io import BytesIO
 
 IMAGENET_DEFAULT_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_DEFAULT_STD = (0.229, 0.224, 0.225)
@@ -71,6 +73,18 @@ pipe_image = pipe_image.to(device)
 
 # load rembg
 bg_remover = rembg.new_session()
+
+def validate(validation_prompt):
+    try:
+        with open(GRADIO_PLY_PATH, "rb") as file:
+            buffer = BytesIO(file.read())
+            buffer.seek(0)
+            data = buffer.read()
+            response = requests.post("http://localhost:8094/validate_ply/", json={"prompt": validation_prompt, "data": data, "data_ver":1})
+            score = response.json().get("score", 0)
+            return score
+    except Exception as e:
+        return f'Validation failed: {str(e)}'
 
 # process function
 def process(input_image, prompt, prompt_neg='', input_elevation=0, input_num_steps=30, input_seed=42):
@@ -207,6 +221,10 @@ with block:
             # gen button
             button_gen = gr.Button("Generate")
 
+            # validation prompt
+            vl_input_text = gr.Textbox(label="validation prompt")
+            button_val = gr.Button("Validate")
+
         
         with gr.Column(scale=1):
             with gr.Tab("Video"):
@@ -214,11 +232,14 @@ with block:
                 output_video = gr.Video(label="video")
                 # ply file
                 output_file = gr.File(label="ply")
+
+                output_score = gr.Textbox(label="validation score")
             with gr.Tab("Multi-view Image"):
                 # multi-view results
                 output_image = gr.Image(interactive=False, show_label=False)
 
         button_gen.click(process, inputs=[input_image, input_text, input_neg_text, input_elevation, input_num_steps, input_seed], outputs=[output_image, output_video, output_file])
+        button_val.click(validate, inputs=[vl_input_text], outputs=[output_score])
     
     gr.Examples(
         examples=[
